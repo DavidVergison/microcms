@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  microcms
+
+  Sample SAM Template for microcms
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 5
+
+Resources:
+  SitesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Sites
+      AttributeDefinitions:
+        - AttributeName: username
+          AttributeType: S
+        - AttributeName: site
+          AttributeType: S
+      KeySchema:
+        - AttributeName: username
+          KeyType: HASH
+        - AttributeName: site
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: SearchBySite
+          KeySchema:
+            - AttributeName: site
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+
+  ArticlesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Articles
+      AttributeDefinitions:
+        - AttributeName: ID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ID
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+
+  UpdateArticleStreamFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: stream/update-article
+      Handler: update-article
+      Runtime: go1.x
+      Policies:
+        - DynamoDBStreamReadPolicy:
+            StreamName: !Select [3, !Split ["/", !GetAtt ArticlesTable.StreamArn]]
+            TableName: !Ref ArticlesTable
+      Events:
+        CatchAll:
+          Type: DynamoDB
+          Properties:
+            StartingPosition: LATEST
+            Stream: !GetAtt ArticlesTable.StreamArn
+            MaximumRetryAttempts: 5
+            BatchSize: 5
+            MaximumBatchingWindowInSeconds: 30
+
+  PutArticleFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: https/articles/put
+      Handler: put-article
+      Runtime: go1.x
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SitesTable
+      Events:
+        CatchAll:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: articles/
+            Method: PUT
+      Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+        Variables:
+          PARAM1: VALUE
+

@@ -1,0 +1,25 @@
+/*
+	Utilisé uniquement pour tester le dev
+*/
+package siteconnector
+
+import (
+	"testing"
+
+	db "github.com/DavidVergison/microcms/dynamodb"
+)
+
+func TestUserConnector(t *testing.T) {
+
+	t.Run("happyFlow", func(t *testing.T) {
+		cnx := db.NewDynamoDbConnector("eu-west-3")
+		userDB := NewSiteConnector(cnx)
+		list, err := userDB.GetSitesByUser("david")
+
+		t.Log(list)
+
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	})
+}

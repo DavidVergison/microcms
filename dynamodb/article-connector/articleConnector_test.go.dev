@@ -1,0 +1,41 @@
+/*
+	Utilisé uniquement pour tester le dev
+*/
+package articleconnector
+
+import (
+	"testing"
+
+	"github.com/DavidVergison/microcms/articles/entities"
+	db "github.com/DavidVergison/microcms/dynamodb"
+)
+
+func TestArticleConnector(t *testing.T) {
+
+	t.Run("happyFlow", func(t *testing.T) {
+		cnx := db.NewDynamoDbConnector("eu-west-3")
+		articleDB := NewArticleConnector(cnx)
+		updated, err := articleDB.SaveArticle(getArticle())
+
+		t.Log(updated)
+
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	})
+}
+
+func getArticle() entities.Article {
+	return entities.Article{
+		ID:      "xyz10",
+		Content: "ca marche (8) !",
+		Location: entities.LocationStruct{
+			Site:        "thesite",
+			Category:    "A",
+			SubCategory: "a",
+		},
+		ReadingKey: "laclefdelecture",
+		Meta:       map[string]string{},
+		Resume:     "ceci est un test",
+	}
+}
